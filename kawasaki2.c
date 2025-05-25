@@ -5,9 +5,9 @@
 #include <time.h>
 
 #define N 32 // Tamaño de la red en la dirección x
-#define PASOS 10000
+#define PASOS 100000
 
-double T = 3;
+double T = 1;
 
 // Función para inicializar la red con magnetización inicial nula
 void inicializarRed_aleatoria(int red[N][N]) {
