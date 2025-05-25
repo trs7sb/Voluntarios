@@ -475,8 +475,9 @@ int main() {
     printf("Seleccione la condición inicial:\n");
     printf("1. Magnetización inicial nula (desordenada aleatoriamente)\n");
     printf("2. Mitad positivos, mitad negativos (aleatorio)\n");
-    printf("Opción: ");
-    scanf("%d", &opcion);
+    //printf("Opción: ");
+    //scanf("%d", &opcion);
+    opcion=2;
 
     // Inicializar la red según la elección del usuario
     if (opcion == 1) {
