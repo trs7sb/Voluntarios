@@ -229,7 +229,7 @@ double calcularMagnetizacion_Inferior(int red[N][N]) {
 }
 
 // Función para calcular la energía de la configuración
-double calcularEnergia_Total(int red[N][N]) {
+double calcularEnergia_Total_Inicial(int red[N][N]) {
     double energia = 0.0;
 
     for (int x = 1; x < N-1; x++) {
@@ -268,12 +268,12 @@ void calcularDensidadesFila(int red[N][N], int fila, int *densidadpositivo, int 
 
 void calcular_CalorEspecifico(double sumaEnergia, double sumaEnergiaCuadrada, int conteo, double *cv) {
 
-      double promedio_E = sumaEnergia/ conteo;
-      double promedio_E2 = sumaEnergiaCuadrada / conteo;
+      double promedio_E = sumaEnergia/ (conteo);
+      double promedio_E2 = sumaEnergiaCuadrada /(conteo);
   
       double varianza_E = promedio_E2 - (promedio_E * promedio_E);
       // Calcular el calor específico a volumen constante
-      *cv = varianza_E / (N*N*T*T);
+      *cv = varianza_E / ((N-2)*N*T*T);
 }
 void calcular_Susceptibilidad(double sumaMag, double sumaMag2, int conteo, double T, double *chi) {
     double promedio_M = sumaMag / conteo;
@@ -290,11 +290,17 @@ int algoritmoMetropolis(int (*red)[N],
 
     double energias[PASOS];
     double energia_actual;
-    bool convergenciaAlcanzada = false;
 
     int densidadpositivo = 0.0;
     int densidadnegativo = 0.0;
     int fila=N/4;
+
+    double energiaConfiguracion = 0.0;
+
+    // Variables para evaluar la convergencia
+    double sumaEnergiaIntervalo = 0.0;
+    double sumaEnergiaCuadradaIntervalo = 0.0;
+    int pasosIntervalo = 100; // Número de pasos en el intervalo para evaluar la convergencia
 
     
     // Abrir el fichero para guardar las configuraciones
@@ -311,7 +317,9 @@ int algoritmoMetropolis(int (*red)[N],
         return 1;
     }
 
-    //for (int step = 0; step < N_STEPS && !convergenciaAlcanzada; step++) {
+    //Calculamos la energía incial de la configuración 
+    energia_actual = calcularEnergia_Total_Inicial(red);
+
         for (int j = 0; j < PASOS; j++){
             for(int i=0; i<N*N; i++){
                 // Elegir un espín al azar
@@ -403,12 +411,14 @@ int algoritmoMetropolis(int (*red)[N],
                     temp = red[x1][y1];
                     red[x1][y1] = red[x2][y2];
                     red[x2][y2] = temp;
+                }else {
+                    // Si se acepta, actualizar la energía actual con la diferencia de energía
+                    energia_actual += difE;
+                    //break;
+                     // Salir del bucle para pasar al siguiente paso Monte Carlo
                 }
             }
 
-            //Guardamos la configuración y la energía cada paso montecarlo
-
-            energia_actual = calcularEnergia_Total(red);
             // Guardar la energía en el array
             energias[j] = energia_actual;
 
@@ -416,19 +426,30 @@ int algoritmoMetropolis(int (*red)[N],
 
             escribirRed(file, red);
 
-            //CONVERGENCIA
-            // Comparar la energía del paso montecarlo actual con la del paso i + 3000
-            if (j>= 3000) {
-                double energiaComparar = energias[j - 3000];
-                if (fabs(energia_actual - energiaComparar) < 4) {
-                // printf("Convergencia alcanzada entre los pasos %d y %d.\n", step - 3000 + 1, step + 1);
-                    //convergenciaAlcanzada = true;
-                // break;
-                }
+                //PARA EVALUAR LA CONVERGENCIA
+
+                sumaEnergiaIntervalo += energia_actual;
+                sumaEnergiaCuadradaIntervalo += energia_actual * energia_actual;
+
+            // Evaluar la convergencia cada "pasosIntervalo" pasos
+            if ((j + 1) % pasosIntervalo == 0) {
+                double promedioEnergia = sumaEnergiaIntervalo / pasosIntervalo;
+                double promedioEnergiaCuadrada = sumaEnergiaCuadradaIntervalo / pasosIntervalo;
+                double varianzaEnergia = promedioEnergiaCuadrada - (promedioEnergia * promedioEnergia);
+
+                // Reiniciar acumuladores para el siguiente intervalo
+                sumaEnergiaIntervalo = 0.0;
+                sumaEnergiaCuadradaIntervalo = 0.0;
+
+                // Verificar si la varianza es suficientemente pequeña
+                 if (varianzaEnergia < 20) {
+                    printf("Convergencia alcanzada en el paso %d.\n", j + 1);
+                    break; // Salir del bucle si se alcanza la convergencia
+                    }
             }
-    
-            // Calcular la magnetización y energía cada 100 pasos montecarlo
-            if ((j + 1) % (100) == 0 && j > 2000) {
+        
+            // PARA CALCULAR LA MAGNETIZACIÓN Y DENSIDAD CADA 100 PASOS MONTECARLO
+            if ((j + 1) % (100) == 0) {
 
                 double magnetizacionSuperior = calcularMagnetizacion_Superior(red);
                 double magnetizacionInferior = calcularMagnetizacion_Inferior(red);
@@ -443,7 +464,7 @@ int algoritmoMetropolis(int (*red)[N],
                 *sumadensidadpositivo += densidadpositivo;
                 *sumadensidadnegativo += densidadnegativo;
                 
-                double energiaConfiguracion = calcularEnergia_Total(red);
+                energiaConfiguracion = energias[j];
 
                 *sumaEnergia += energiaConfiguracion;
 
@@ -477,7 +498,7 @@ int main() {
     printf("2. Mitad positivos, mitad negativos (aleatorio)\n");
     //printf("Opción: ");
     //scanf("%d", &opcion);
-    opcion=2;
+    opcion=1;
 
     // Inicializar la red según la elección del usuario
     if (opcion == 1) {
