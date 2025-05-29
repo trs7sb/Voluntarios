@@ -498,7 +498,7 @@ int main() {
     printf("2. Mitad positivos, mitad negativos (aleatorio)\n");
     //printf("Opción: ");
     //scanf("%d", &opcion);
-    opcion=1;
+    opcion=2;
 
     // Inicializar la red según la elección del usuario
     if (opcion == 1) {
@@ -542,8 +542,8 @@ int main() {
     }
 
     // Imprimir la configuración inicial
-    printf("Configuración inicial de la red:\n");
-    imprimirRed(red);
+    //printf("Configuración inicial de la red:\n");
+    //imprimirRed(red);
 
       // Variables para acumular magnetización
     double sumaMagnetizacionSuperior = 0.0;
